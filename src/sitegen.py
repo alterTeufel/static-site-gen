@@ -5,7 +5,7 @@ from pathlib import Path
 def _ensure_dir(path):
     os.makedirs(path, exist_ok=True)
 
-def generate_page(from_path: str, template_path: str, dest_path: str):
+def generate_page(from_path: str, template_path: str, dest_path: str, basepath: str = "/"):
     """
     Generate a full HTML page.
 
@@ -36,6 +36,19 @@ def generate_page(from_path: str, template_path: str, dest_path: str):
     # Replace placeholders
     page_html = tpl_text.replace("{{ Title }}", title).replace("{{ Content }}", content_html)
 
+    # Ensure basepath ends with '/' if it's '/' otherwise ensure it starts and ends with '/'
+    if not basepath:
+        basepath = "/"
+    if basepath != "/":
+        if not basepath.startswith("/"):
+            basepath = "/" + basepath
+        if not basepath.endswith("/"):
+            basepath = basepath + "/"
+
+    # Replace absolute-root references in href/src
+    page_html = page_html.replace('href="/', f'href="{basepath}')
+    page_html = page_html.replace('src="/', f'src="{basepath}')
+
     # Ensure destination directory exists
     dest_dir = os.path.dirname(dest_path)
     if dest_dir and not os.path.exists(dest_dir):
@@ -45,7 +58,7 @@ def generate_page(from_path: str, template_path: str, dest_path: str):
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(page_html)
 
-def generate_pages_recursive(dir_path_content: str, template_path: str, dest_dir_path: str):
+def generate_pages_recursive(dir_path_content: str, template_path: str, dest_dir_path: str, basepath: str = "/"):
     """
     Walk dir_path_content recursively. For each *.md file:
       - generate HTML using template_path
@@ -62,5 +75,6 @@ def generate_pages_recursive(dir_path_content: str, template_path: str, dest_dir
         src_path = str(p)
         dest_path = str(dest_root.joinpath(dest_rel))
         # ensure parent exists and generate
-        _ensure_dir(os.path.dirname(dest_path))
-        generate_page(src_path, template_path, dest_path)
+        ##_ensure_dir(os.path.dirname(dest_path))
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        generate_page(src_path, template_path, dest_path, basepath)
